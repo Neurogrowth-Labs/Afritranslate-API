@@ -276,7 +276,7 @@ export default function App() {
             <span>AfriTranslate Server Active • running on port 3000</span>
           </div>
           <div>
-            <span>Powered by Gemini AI • Antigravity Agent Platform</span>
+            <span>Powered by AfriTranslate AI Studio.</span>
           </div>
         </div>
       </footer>
