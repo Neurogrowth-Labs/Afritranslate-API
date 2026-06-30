@@ -14,9 +14,11 @@ import {
   Copy, 
   Check,
   Shield,
-  Layers
+  Layers,
+  Cpu
 } from "lucide-react";
 import TranslatorTab from "./components/TranslatorTab";
+import AiPlaygroundTab from "./components/AiPlaygroundTab";
 import WebhookPlaygroundTab from "./components/WebhookPlaygroundTab";
 import ApiDocsTab from "./components/ApiDocsTab";
 import LanguageExplorerTab from "./components/LanguageExplorerTab";
@@ -24,7 +26,7 @@ import HistoryAnalyticsTab from "./components/HistoryAnalyticsTab";
 import AuthModal from "./components/AuthModal";
 import { AuthResponse } from "./types";
 
-type ActiveTab = "translator" | "webhooks" | "docs" | "languages" | "history";
+type ActiveTab = "translator" | "ai-playground" | "webhooks" | "docs" | "languages" | "history";
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("translator");
@@ -201,6 +203,7 @@ export default function App() {
           <nav className="flex space-x-2 py-3 overflow-x-auto select-none no-scrollbar">
             {[
               { id: "translator", label: "Sandbox Translator", icon: Languages },
+              { id: "ai-playground", label: "Advanced AI Labs", icon: Cpu },
               { id: "webhooks", label: "Webhook Playground", icon: Terminal },
               { id: "docs", label: "Interactive API Docs", icon: BookOpen },
               { id: "languages", label: "Language Catalog", icon: Globe },
@@ -233,6 +236,10 @@ export default function App() {
         <div className="transition-all duration-300">
           {activeTab === "translator" && (
             <TranslatorTab token={token} />
+          )}
+
+          {activeTab === "ai-playground" && (
+            <AiPlaygroundTab token={token} />
           )}
 
           {activeTab === "webhooks" && (

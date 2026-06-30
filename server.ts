@@ -4,7 +4,7 @@ import fs from "fs";
 import crypto from "crypto";
 import { createServer as createViteServer } from "vite";
 import { AFRICAN_LANGUAGES, LANG_MAP, DEMO_TRANSLATIONS, detectLanguageOffline } from "./src/data/languages";
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 
 const PORT = 3000;
 const SECRET_KEY = process.env.SECRET_KEY || "afritranslate-super-secret-key-2026";
@@ -371,11 +371,16 @@ async function translateText(
     const targetLangName = LANG_MAP[tLang]?.name || tLang.toUpperCase();
     const targetLangNative = LANG_MAP[tLang]?.native || "";
 
-    try {
-      console.log(`[Translation Engine] Routing translation through Gemini AI Client`);
-      const response = await aiClient.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: `You are AfriTranslate, a professional real-time translator specializing in African languages.
+    const modelsToTry = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
+    
+    for (const modelName of modelsToTry) {
+      let attempts = 3;
+      for (let attempt = 1; attempt <= attempts; attempt++) {
+        try {
+          console.log(`[Translation Engine] Routing translation through Gemini AI Client (Model: ${modelName}, Attempt: ${attempt}/${attempts})`);
+          const response = await aiClient.models.generateContent({
+            model: modelName,
+            contents: `You are AfriTranslate, a professional real-time translator specializing in African languages.
 Translate the following text from ${sourceLangName} (${sLang}) into ${targetLangName} (${targetLangNative ? targetLangNative + ', ' : ''}${tLang}).
 
 CRITICAL TRANSLATION CONSTRAINTS:
@@ -385,19 +390,49 @@ CRITICAL TRANSLATION CONSTRAINTS:
 
 Input Text to Translate:
 "${text}"`,
-        config: {
-          temperature: 0.1,
-          systemInstruction: "You are an accurate translator. You output only the translation and nothing else."
-        }
-      });
+            config: {
+              temperature: 0.1,
+              systemInstruction: "You are an accurate translator. You output only the translation and nothing else."
+            }
+          });
 
-      const translated = response.text?.trim() || "";
-      if (translated) {
-        return { text: translated, confidence: 0.96 };
+          const translated = response.text?.trim() || "";
+          if (translated) {
+            return { text: translated, confidence: 0.96 };
+          }
+        } catch (err: any) {
+          const errString = typeof err === "string" ? err : JSON.stringify(err);
+          console.error(`[Translation Engine] Gemini attempt ${attempt} failed with model ${modelName}:`, errString);
+          
+          const isRateLimit = 
+            err?.status === 429 || 
+            err?.error?.code === 429 ||
+            err?.error?.status === "RESOURCE_EXHAUSTED" ||
+            errString.includes("429") || 
+            errString.includes("quota") || 
+            errString.includes("RESOURCE_EXHAUSTED");
+
+          const isUnavailable = 
+            err?.status === 503 || 
+            err?.status === "UNAVAILABLE" ||
+            err?.error?.code === 503 ||
+            err?.error?.status === "UNAVAILABLE" ||
+            errString.includes("503") || 
+            errString.includes("demand") || 
+            errString.includes("UNAVAILABLE") ||
+            errString.includes("SERVICE_UNAVAILABLE");
+          
+          if ((isRateLimit || isUnavailable) && attempt < attempts) {
+            const backoffMs = attempt * 1000;
+            console.log(`[Translation Engine] Transient error detected (${isRateLimit ? "429 Rate Limit" : "503 Unavailable"}). Retrying in ${backoffMs}ms...`);
+            await new Promise((resolve) => setTimeout(resolve, backoffMs));
+            continue;
+          }
+          break; // Try next model or fallback
+        }
       }
-    } catch (err) {
-      console.error("Gemini Translation failed, falling back to demo engine:", err);
     }
+    console.warn("[Translation Engine] All configured Gemini models and attempts failed. Falling back to offline dictionary.");
   }
 
   // ─── DEMO FALLBACK ──────────────────────────────────────────────────────────
@@ -762,6 +797,91 @@ async function startServer() {
       confidence,
       alternatives
     });
+  });
+
+  // ─── AI Playground & Intelligence Hub Endpoints ───
+
+  app.post("/api/v1/ai-playground", async (req, res) => {
+    const { prompt, mode, latitude, longitude, taskType } = req.body;
+
+    if (!prompt || prompt.trim().length === 0) {
+      return res.status(422).json({ detail: "Prompt is required" });
+    }
+
+    if (!aiClient) {
+      return res.status(503).json({ detail: "Gemini AI Client is not configured on this server. Please set the GEMINI_API_KEY in Settings > Secrets." });
+    }
+
+    let modelName = "gemini-3.5-flash";
+    let config: any = {
+      temperature: 0.7,
+    };
+
+    try {
+      if (mode === "thinking") {
+        // High Thinking Mode
+        modelName = "gemini-3.1-pro-preview";
+        config.thinkingConfig = {
+          thinkingLevel: ThinkingLevel.HIGH,
+        };
+        // Do not set maxOutputTokens (ensure it's not present)
+        if (config.maxOutputTokens) {
+          delete config.maxOutputTokens;
+        }
+      } else if (mode === "low-latency") {
+        // Low-latency Responses
+        modelName = "gemini-3.1-flash-lite";
+      } else if (mode === "search-grounding") {
+        // Google Search Grounding
+        modelName = "gemini-3.5-flash";
+        config.tools = [{ googleSearch: {} }];
+      } else if (mode === "maps-grounding") {
+        // Google Maps Grounding
+        modelName = "gemini-3.5-flash";
+        config.tools = [{ googleMaps: {} }];
+        
+        if (latitude !== undefined && longitude !== undefined) {
+          config.toolConfig = {
+            retrievalConfig: {
+              latLng: {
+                latitude: Number(latitude),
+                longitude: Number(longitude)
+              }
+            }
+          };
+        }
+      } else {
+        // Dynamic Gemini Intelligence
+        if (taskType === "complex") {
+          modelName = "gemini-3.1-pro-preview";
+        } else if (taskType === "fast") {
+          modelName = "gemini-3.1-flash-lite";
+        } else {
+          modelName = "gemini-3.5-flash";
+        }
+      }
+
+      console.log(`[AI Playground] Querying model ${modelName} with mode: ${mode}, taskType: ${taskType}`);
+      const response = await aiClient.models.generateContent({
+        model: modelName,
+        contents: prompt,
+        config: config
+      });
+
+      const responseText = response.text || "";
+      const groundingMetadata = response.candidates?.[0]?.groundingMetadata;
+      const groundingChunks = groundingMetadata?.groundingChunks || [];
+
+      res.json({
+        text: responseText,
+        modelUsed: modelName,
+        groundingChunks: groundingChunks,
+      });
+
+    } catch (err: any) {
+      console.error("[AI Playground] Error executing AI query:", err);
+      res.status(500).json({ detail: err.message || "An error occurred while processing the AI request." });
+    }
   });
 
   // ─── History Endpoints ───
