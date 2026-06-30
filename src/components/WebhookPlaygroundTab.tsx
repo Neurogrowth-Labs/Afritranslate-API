@@ -108,8 +108,29 @@ export default function WebhookPlaygroundTab() {
       });
 
       setResponseCode(res.status);
-      const data = await res.json();
-      setResponsePayload(JSON.stringify(data, null, 2));
+      
+      const contentType = res.headers.get("content-type");
+      const text = await res.text();
+
+      if (contentType && contentType.includes("application/json")) {
+        try {
+          const data = JSON.parse(text);
+          setResponsePayload(JSON.stringify(data, null, 2));
+        } catch (jsonErr: any) {
+          setError(`Invalid JSON response from server: ${jsonErr.message}`);
+          setResponsePayload(text);
+        }
+      } else {
+        // Response is HTML or plain text (e.g. 404, 502, 503, or 504 error page)
+        if (text.includes("<!DOCTYPE html>") || text.includes("<html") || text.includes("<body")) {
+          const match = text.match(/<title>(.*?)<\/title>/i);
+          const pageTitle = match && match[1] ? match[1].trim() : "HTML Error Page";
+          setError(`Server returned HTML: "${pageTitle}" (Status ${res.status}). The webhook endpoint might not be matching or the backend could be offline.`);
+        } else {
+          setError(`Server returned non-JSON response (Status ${res.status}): ${text.slice(0, 300)}`);
+        }
+        setResponsePayload(text);
+      }
     } catch (err: any) {
       setError(err.message || "Failed to deliver webhook simulation.");
     } finally {

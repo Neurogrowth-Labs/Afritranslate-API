@@ -43,13 +43,25 @@ export default function TranslatorTab({ token }: TranslatorTabProps) {
         })
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.detail || "Translation request failed");
-      }
+      const contentType = res.headers.get("content-type");
+      const textResponse = await res.text();
 
-      setResponse(data as TranslateResponse);
-      setApiResponseJson(JSON.stringify(data, null, 2));
+      if (contentType && contentType.includes("application/json")) {
+        const data = JSON.parse(textResponse);
+        if (!res.ok) {
+          throw new Error(data.detail || "Translation request failed");
+        }
+        setResponse(data as TranslateResponse);
+        setApiResponseJson(JSON.stringify(data, null, 2));
+      } else {
+        // Returned HTML page or plain text
+        if (textResponse.includes("<!DOCTYPE html>") || textResponse.includes("<html")) {
+          const match = textResponse.match(/<title>(.*?)<\/title>/i);
+          const pageTitle = match && match[1] ? match[1].trim() : "HTML Error Page";
+          throw new Error(`Server returned HTML: "${pageTitle}" (Status ${res.status}). The requested translation URL might be incorrect or the server has an issue.`);
+        }
+        throw new Error(textResponse || `Server returned status ${res.status}`);
+      }
     } catch (err: any) {
       setError(err.message || "Failed to complete translation.");
       setResponse(null);
