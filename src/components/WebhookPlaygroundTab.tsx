@@ -3,7 +3,7 @@ import {
   MessageSquare, Play, Send, Check, Code, ShieldAlert, 
   Smartphone, RefreshCw, AlertTriangle, ArrowLeft, 
   Settings, Info, CheckCheck, Eye, Sparkles, HelpCircle,
-  Clock, Server, Terminal, Layers
+  Clock, Server, Terminal, Layers, Languages, Globe
 } from "lucide-react";
 
 // ---- Design Tokens -------------------------------------------------
@@ -168,6 +168,124 @@ interface LastResult {
   confidence: number;
 }
 
+interface BubbleProps {
+  id: string;
+  originalText: string;
+  isMine: boolean;
+  time: string;
+  delivered?: boolean;
+  theme: any;
+  isTranslated?: boolean;
+  translation_map?: Record<string, string>;
+  targetLang: string;
+  onToggle: () => void;
+  isLoading?: boolean;
+  pulse?: boolean;
+}
+
+const Bubble: React.FC<BubbleProps> = ({
+  id,
+  originalText,
+  isMine,
+  time,
+  delivered = false,
+  theme,
+  isTranslated = false,
+  translation_map = {},
+  targetLang,
+  onToggle,
+  isLoading = false,
+  pulse = false,
+}) => {
+  // Determine display text based on isTranslated and translation_map
+  const translatedText = translation_map[targetLang] || translation_map["default"] || "";
+  const displayText = isTranslated && translatedText ? translatedText : originalText;
+
+  // Render ticks for sent messages
+  const renderTicks = (delivered: boolean) => {
+    return (
+      <svg width="16" height="11" viewBox="0 0 16 11" style={{ marginLeft: 4, display: "inline-block", verticalAlign: "middle" }}>
+        <path
+          d="M1 5.5L4.5 9L9.5 1.5"
+          stroke={theme.tick}
+          strokeWidth="1.4"
+          fill="none"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+        {delivered && (
+          <path
+            d="M5.5 5.5L9 9L14 1.5"
+            stroke={theme.tick}
+            strokeWidth="1.4"
+            fill="none"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        )}
+      </svg>
+    );
+  };
+
+  return (
+    <div className={`flex ${isMine ? "justify-end" : "justify-start"} transition-all duration-300`}>
+      <div
+        onClick={onToggle}
+        className={`max-w-[78%] px-3 py-2 rounded-2xl shadow-md text-xs leading-relaxed relative transition-all duration-150 ${
+          !isMine ? "cursor-pointer hover:brightness-110 active:scale-[0.98]" : ""
+        }`}
+        style={{
+          background: isMine ? theme.sentBubble : theme.receivedBubble,
+          color: isMine ? theme.sentText : theme.receivedText,
+          borderBottomRightRadius: isMine ? 4 : 16,
+          borderBottomLeftRadius: isMine ? 16 : 4,
+          outline: pulse ? "2px solid #22D3EE" : "none",
+          outlineOffset: 3,
+        }}
+        title={!isMine ? "Tap to toggle translation" : undefined}
+      >
+        {isLoading ? (
+          <div className="flex items-center gap-1.5 py-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+            <span className="text-[10px] opacity-70 font-mono">Translating...</span>
+          </div>
+        ) : (
+          <>
+            <p className="whitespace-pre-wrap select-text break-words font-sans">
+              {displayText || "(No message)"}
+            </p>
+            {!isMine && (
+              <div className="mt-1 flex items-center justify-between gap-2 border-t border-slate-700/20 pt-1 text-[8px] opacity-60 font-mono">
+                <span className="flex items-center gap-1">
+                  {isTranslated ? (
+                    <>
+                      <Sparkles className="h-2.5 w-2.5 text-cyan-400 animate-pulse" />
+                      <span>Translated to {targetLang.toUpperCase()}</span>
+                    </>
+                  ) : (
+                    <>
+                      <Globe className="h-2.5 w-2.5 opacity-50 text-slate-400" />
+                      <span>Original • Tap to translate</span>
+                    </>
+                  )}
+                </span>
+                <span className="uppercase font-bold text-[7px] bg-slate-800/40 px-1.5 py-0.5 rounded text-slate-300 flex items-center gap-1.5">
+                  {isTranslated ? <Languages className="h-2.5 w-2.5 text-cyan-400" /> : <Globe className="h-2.5 w-2.5 text-slate-400" />}
+                  {isTranslated ? targetLang : "orig"}
+                </span>
+              </div>
+            )}
+          </>
+        )}
+        <div className="text-[9px] text-right mt-1 opacity-60 flex items-center justify-end gap-1 font-mono">
+          <span>{time}</span>
+          {isMine && renderTicks(delivered)}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function WebhookPlaygroundTab() {
   const [platform, setPlatform] = useState<"whatsapp" | "telegram" | "tiktok" | "sms">("whatsapp");
   const [viewAs, setViewAs] = useState<"sender" | "receiver">("receiver");
@@ -198,11 +316,33 @@ export default function WebhookPlaygroundTab() {
     loading: boolean;
   }>>({});
   const [bubbleViews, setBubbleViews] = useState<Record<string, "original" | "translated">>({});
+  const [translationMaps, setTranslationMaps] = useState<Record<string, Record<string, string>>>({
+    "seed-0": {
+      "sw": "Hawa, kuna kitu kimeunganishwa bado?",
+      "en": "Hey, is this thing connected yet?",
+      "zu": "Sawubona, ngabe le nto ixhunyiwe kakade?",
+      "yo": "Hey, njẹ nkan yii ti sopọ tẹlẹ?",
+      "ig": "Hey, ihe a ọ jikọọla?",
+      "ha": "Sannu, shin wannan abu ya riga ya haɗu?",
+      "am": "ሰላም ፣ ይህ ነገር አስቀድሞ ተገናኝቷል?",
+      "af": "Haai, is hierdie ding al gekoppel?",
+    },
+    "seed-1": {
+      "sw": "Ninajaza tu webhook sasa hivi — sekunde moja.",
+      "en": "Just wiring up the webhook now — one sec.",
+      "zu": "Ngizoxhumanisa i-webhook manje — isekhondi elilodwa.",
+      "yo": "Mo kan n ṣatunṣe webhook ni bayi — iṣẹju-aaya kan.",
+      "ig": "M na-ejikọta webhook ugbu a - otu sekọnd.",
+      "ha": "Ina haɗa webhook yanzu - sakan ɗaya.",
+      "am": "አሁን ዌብሁክን እያገናኘሁ ነው - አንድ ሰከንድ።",
+      "af": "Ek bedraad net nou die webhook — een sekonde.",
+    }
+  });
 
   // Sync main Target Language Profile to receiver idiom automatically
   useEffect(() => {
     setReceiverIdiom(targetLang);
-    // Clear translations on target language shift to force update
+    // Clear dynamic translations on target language shift to force update
     setTranslatedBubbles({});
     setBubbleViews({});
   }, [targetLang]);
@@ -214,8 +354,8 @@ export default function WebhookPlaygroundTab() {
     if (currentView === "translated") {
       setBubbleViews(prev => ({ ...prev, [bubbleId]: "original" }));
     } else {
-      const cache = translatedBubbles[bubbleId];
-      if (cache && cache.lang === receiverIdiom) {
+      const cached = translationMaps[bubbleId]?.[receiverIdiom];
+      if (cached) {
         setBubbleViews(prev => ({ ...prev, [bubbleId]: "translated" }));
       } else {
         setTranslatedBubbles(prev => ({
@@ -235,6 +375,13 @@ export default function WebhookPlaygroundTab() {
           });
           const data = await res.json();
           if (res.ok && data.translated_text) {
+            setTranslationMaps(prev => ({
+              ...prev,
+              [bubbleId]: {
+                ...prev[bubbleId],
+                [receiverIdiom]: data.translated_text
+              }
+            }));
             setTranslatedBubbles(prev => ({
               ...prev,
               [bubbleId]: {
@@ -249,10 +396,18 @@ export default function WebhookPlaygroundTab() {
           }
         } catch (err) {
           console.error("Tap to translate error:", err);
+          const fallbackText = `[Translated to ${receiverIdiom.toUpperCase()}] ${originalText}`;
+          setTranslationMaps(prev => ({
+            ...prev,
+            [bubbleId]: {
+              ...prev[bubbleId],
+              [receiverIdiom]: fallbackText
+            }
+          }));
           setTranslatedBubbles(prev => ({
             ...prev,
             [bubbleId]: {
-              text: `[Translated] ${originalText}`,
+              text: fallbackText,
               lang: receiverIdiom,
               loading: false
             }
@@ -556,6 +711,20 @@ export default function WebhookPlaygroundTab() {
               targetLang,
               confidence: conf
             });
+
+            // Populate translationMap for the dynamic bubble so it can be tapped/toggled
+            setTranslationMaps(prev => ({
+              ...prev,
+              "dynamic-bubble": {
+                ...prev["dynamic-bubble"],
+                [targetLang]: transText
+              }
+            }));
+            // Automatically default to translated for receivers to showcase instant delivery
+            setBubbleViews(prev => ({
+              ...prev,
+              "dynamic-bubble": "translated"
+            }));
           }
         } catch (jsonErr: any) {
           setError(`Invalid JSON response from server: ${jsonErr.message}`);
@@ -853,50 +1022,23 @@ export default function WebhookPlaygroundTab() {
                   const isSeedMine = seedMsg.from === "me";
                   const bubbleId = `seed-${idx}`;
                   const isTranslated = bubbleViews[bubbleId] === "translated";
-                  const bubbleCache = translatedBubbles[bubbleId];
-                  const displayText = isTranslated && bubbleCache ? bubbleCache.text : seedMsg.text;
-                  const isLoading = bubbleCache?.loading;
+                  const isLoading = translatedBubbles[bubbleId]?.loading;
 
                   return (
-                    <div 
+                    <Bubble
                       key={idx}
-                      className={`flex ${isSeedMine ? "justify-end" : "justify-start"} animate-fade-in`}
-                    >
-                      <div
-                        onClick={() => !isSeedMine && toggleBubbleTranslation(bubbleId, seedMsg.text)}
-                        className={`max-w-[78%] px-3 py-2 rounded-2xl shadow-sm text-xs leading-relaxed transition-all duration-150 relative ${
-                          !isSeedMine ? "cursor-pointer hover:brightness-110 active:scale-[0.98]" : ""
-                        }`}
-                        style={{
-                          background: isSeedMine ? theme.sentBubble : theme.receivedBubble,
-                          color: isSeedMine ? theme.sentText : theme.receivedText,
-                          borderBottomRightRadius: isSeedMine ? 4 : 16,
-                          borderBottomLeftRadius: isSeedMine ? 16 : 4,
-                        }}
-                        title={!isSeedMine ? "Tap to translate" : undefined}
-                      >
-                        {isLoading ? (
-                          <div className="flex items-center gap-1.5 py-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-                            <span className="text-[10px] opacity-70">Translating...</span>
-                          </div>
-                        ) : (
-                          <>
-                            <p>{displayText}</p>
-                            {!isSeedMine && (
-                              <div className="mt-1 flex items-center justify-between gap-2 border-t border-slate-700/20 pt-0.5 text-[8px] opacity-50 font-mono">
-                                <span>{isTranslated ? "Translated" : "Tap to translate"}</span>
-                                <span className="uppercase">{isTranslated ? `${receiverIdiom}` : "orig"}</span>
-                              </div>
-                            )}
-                          </>
-                        )}
-                        <div className="text-[9px] text-right mt-1 opacity-60 flex items-center justify-end gap-1 font-mono">
-                          <span>11:58 AM</span>
-                          {isSeedMine && renderTicks(true)}
-                        </div>
-                      </div>
-                    </div>
+                      id={bubbleId}
+                      originalText={seedMsg.text}
+                      isMine={isSeedMine}
+                      time="11:58 AM"
+                      delivered={true}
+                      theme={theme}
+                      isTranslated={isTranslated}
+                      translation_map={translationMaps[bubbleId]}
+                      targetLang={receiverIdiom}
+                      onToggle={() => !isSeedMine && toggleBubbleTranslation(bubbleId, seedMsg.text)}
+                      isLoading={isLoading}
+                    />
                   );
                 })}
 
@@ -904,53 +1046,23 @@ export default function WebhookPlaygroundTab() {
                 {(() => {
                   const bubbleId = "dynamic-bubble";
                   const isTranslated = bubbleViews[bubbleId] === "translated";
-                  const bubbleCache = translatedBubbles[bubbleId];
-                  const displayText = isTranslated && bubbleCache ? bubbleCache.text : message;
-                  const isLoading = bubbleCache?.loading;
+                  const isLoading = translatedBubbles[bubbleId]?.loading;
 
                   return (
-                    <div 
-                      className={`flex ${mine ? "justify-end" : "justify-start"} transition-all duration-300`}
-                    >
-                      <div
-                        onClick={() => !mine && toggleBubbleTranslation(bubbleId, message)}
-                        className={`max-w-[78%] px-3 py-2 rounded-2xl shadow-md text-xs leading-relaxed relative transition-all duration-150 ${
-                          !mine ? "cursor-pointer hover:brightness-110 active:scale-[0.98]" : ""
-                        }`}
-                        style={{
-                          background: mine ? theme.sentBubble : theme.receivedBubble,
-                          color: mine ? theme.sentText : theme.receivedText,
-                          borderBottomRightRadius: mine ? 4 : 16,
-                          borderBottomLeftRadius: mine ? 16 : 4,
-                          outline: pulse ? "2px solid #22D3EE" : "none",
-                          outlineOffset: 3,
-                        }}
-                        title={!mine ? "Tap to translate" : undefined}
-                      >
-                        {isLoading ? (
-                          <div className="flex items-center gap-1.5 py-1">
-                            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-                            <span className="text-[10px] opacity-70 font-mono">Translating...</span>
-                          </div>
-                        ) : (
-                          <>
-                            <p className="whitespace-pre-wrap select-text break-words font-sans">
-                              {displayText || "(No payload message)"}
-                            </p>
-                            {!mine && message && (
-                              <div className="mt-1 flex items-center justify-between gap-2 border-t border-slate-700/20 pt-0.5 text-[8px] opacity-50 font-mono">
-                                <span>{isTranslated ? "Translated" : "Tap to translate"}</span>
-                                <span className="uppercase">{isTranslated ? `${receiverIdiom}` : "orig"}</span>
-                              </div>
-                            )}
-                          </>
-                        )}
-                        <div className="text-[9px] text-right mt-1 opacity-60 flex items-center justify-end gap-1 font-mono">
-                          <span>{time}</span>
-                          {mine && renderTicks(true)}
-                        </div>
-                      </div>
-                    </div>
+                    <Bubble
+                      id={bubbleId}
+                      originalText={message}
+                      isMine={mine}
+                      time={time}
+                      delivered={true}
+                      theme={theme}
+                      isTranslated={isTranslated}
+                      translation_map={translationMaps[bubbleId]}
+                      targetLang={receiverIdiom}
+                      onToggle={() => !mine && message && toggleBubbleTranslation(bubbleId, message)}
+                      isLoading={isLoading}
+                      pulse={pulse}
+                    />
                   );
                 })()}
 
