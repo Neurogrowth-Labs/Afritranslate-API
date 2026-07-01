@@ -333,8 +333,19 @@ async function translateText(
 
   // ─── LIBRETRANSLATE SERVICE ──────────────────────────────────────────────
   if (engineType === "libretranslate") {
-    const ltUrl = process.env.LIBRETRANSLATE_API_URL || "https://libretranslate.com";
-    const ltKey = process.env.LIBRETRANSLATE_API_KEY;
+    let ltUrl = "https://libretranslate.com";
+    let ltKey = "";
+    
+    try {
+      const db = readDb();
+      const ltConfig = (db as any).libretranslateConfig || {};
+      ltUrl = ltConfig.api_url || process.env.LIBRETRANSLATE_API_URL || "https://libretranslate.com";
+      ltKey = ltConfig.api_key || process.env.LIBRETRANSLATE_API_KEY || "";
+    } catch (dbErr) {
+      ltUrl = process.env.LIBRETRANSLATE_API_URL || "https://libretranslate.com";
+      ltKey = process.env.LIBRETRANSLATE_API_KEY || "";
+    }
+
     try {
       console.log(`[Translation Engine] Routing translation through LibreTranslate API: ${ltUrl}`);
       const response = await fetch(`${ltUrl}/translate`, {
@@ -1177,6 +1188,85 @@ async function startServer() {
     db.webhookConfigs.splice(cIdx, 1);
     writeDb(db);
     res.sendStatus(204);
+  });
+
+  // ─── LibreTranslate Config & Connection Endpoints ───
+
+  // Get LibreTranslate Config
+  app.get("/api/v1/libretranslate/config", (req, res) => {
+    const db = readDb();
+    const ltConfig = (db as any).libretranslateConfig || {
+      api_url: process.env.LIBRETRANSLATE_API_URL || "https://libretranslate.com",
+      api_key: process.env.LIBRETRANSLATE_API_KEY || ""
+    };
+    res.json(ltConfig);
+  });
+
+  // Save LibreTranslate Config
+  app.post("/api/v1/libretranslate/config", (req, res) => {
+    const { api_url, api_key } = req.body;
+    if (!api_url) {
+      return res.status(400).json({ detail: "api_url is required" });
+    }
+
+    const db = readDb();
+    (db as any).libretranslateConfig = {
+      api_url,
+      api_key: api_key || ""
+    };
+    writeDb(db);
+    res.json({ status: "success", config: (db as any).libretranslateConfig });
+  });
+
+  // Test LibreTranslate Connection
+  app.post("/api/v1/libretranslate/test", async (req, res) => {
+    const { api_url, api_key } = req.body;
+    if (!api_url) {
+      return res.status(400).json({ detail: "api_url is required" });
+    }
+
+    try {
+      console.log(`[LibreTranslate Test] Testing connection to: ${api_url}`);
+      // Query /languages endpoint on LibreTranslate
+      const url = api_url.endsWith("/") ? `${api_url}languages` : `${api_url}/languages`;
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), 6000); // 6 second timeout
+      
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "Accept": "application/json",
+        },
+        signal: controller.signal
+      });
+      clearTimeout(id);
+
+      if (!response.ok) {
+        throw new Error(`Instance returned status: ${response.status}`);
+      }
+
+      const languages = await response.json();
+      if (Array.isArray(languages)) {
+        return res.json({
+          status: "online",
+          url: api_url,
+          languages_count: languages.length,
+          available_languages: languages.slice(0, 10).map((l: any) => ({
+            code: l.code,
+            name: l.name
+          }))
+        });
+      } else {
+        throw new Error("Instance returned unexpected response format (not a JSON array of languages).");
+      }
+    } catch (err: any) {
+      console.error(`[LibreTranslate Test] Test connection failed for ${api_url}:`, err);
+      return res.json({
+        status: "offline",
+        url: api_url,
+        error: err.message || "Could not reach the instance. Verify the URL is correct and public."
+      });
+    }
   });
 
   // ─── Vite Middleware & SPA serving ──────────────────────────────────────────

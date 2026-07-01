@@ -96,8 +96,12 @@ export default function App() {
           
           {/* Logo Brand */}
           <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500 text-slate-900 border border-amber-400 shadow-md">
-              <Globe className="h-4.5 w-4.5 animate-pulse" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500 text-slate-900 border border-amber-400 shadow-md p-1">
+              <svg viewBox="0 0 100 100" className="h-7 w-7 text-slate-900" fill="currentColor">
+                <path d="M 32 20 C 42 12, 65 10, 75 22 C 82 28, 85 38, 88 48 C 90 56, 80 64, 74 72 C 63 84, 55 92, 48 97 C 46 98, 44 95, 42 90 C 37 80, 29 70, 23 58 C 18 50, 14 44, 18 38 C 21 34, 25 36, 27 33 C 29 30, 26 25, 32 20 Z" />
+                <circle cx="50" cy="42" r="5.5" fill="#F59E0B" />
+                <path d="M 47 45 L 53 45 L 56 62 L 44 62 Z" fill="#F59E0B" />
+              </svg>
             </div>
             <div>
               <div className="flex items-center gap-1.5">
@@ -203,7 +207,7 @@ export default function App() {
           <nav className="flex space-x-2 py-3 overflow-x-auto select-none no-scrollbar">
             {[
               { id: "translator", label: "Sandbox Translator", icon: Languages },
-              { id: "ai-playground", label: "Advanced AI Labs", icon: Cpu },
+              { id: "ai-playground", label: "Laboratory", icon: Cpu },
               { id: "webhooks", label: "Webhook Playground", icon: Terminal },
               { id: "docs", label: "Interactive API Docs", icon: BookOpen },
               { id: "languages", label: "Language Catalog", icon: Globe },

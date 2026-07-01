@@ -175,7 +175,7 @@ export default function AiPlaygroundTab({ token }: AiPlaygroundTabProps) {
             <Cpu className="h-5 w-5" />
           </div>
           <div>
-            <h2 className="font-sans font-extrabold text-xl text-white">Gemini Advanced AI Labs</h2>
+            <h2 className="font-sans font-extrabold text-xl text-white">Laboratory</h2>
             <p className="text-xs text-slate-400 font-mono mt-0.5">Explore real-time thinking, groundings, low-latency, and custom language intelligence operations</p>
           </div>
         </div>
@@ -200,13 +200,13 @@ export default function AiPlaygroundTab({ token }: AiPlaygroundTabProps) {
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <Brain className={`h-4.5 w-4.5 ${mode === "thinking" ? "text-amber-500" : "text-slate-400"}`} />
-                    <span className="text-xs font-bold text-white">🧠 High Thinking Mode</span>
+                    <span className="text-xs font-bold text-white">High Thinking Mode</span>
                   </div>
                   <p className="text-[10px] text-slate-400 leading-normal">
-                    Max reasoning for complex language queries and proverbs. Powered by <strong className="font-mono text-[9px] text-amber-500">gemini-3.1-pro-preview</strong>.
+                    Max reasoning for complex language queries and proverbs.
                   </p>
                 </button>
-
+ 
                 {/* Low-Latency Mode Button */}
                 <button
                   onClick={() => setMode("low-latency")}
@@ -218,13 +218,13 @@ export default function AiPlaygroundTab({ token }: AiPlaygroundTabProps) {
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <Zap className={`h-4.5 w-4.5 ${mode === "low-latency" ? "text-amber-400 animate-pulse" : "text-slate-400"}`} />
-                    <span className="text-xs font-bold text-white">⚡ Low-Latency Chat</span>
+                    <span className="text-xs font-bold text-white">Low-Latency Chat</span>
                   </div>
                   <p className="text-[10px] text-slate-400 leading-normal">
-                    Blazing-fast sub-second response times. Powered by <strong className="font-mono text-[9px] text-amber-400">gemini-3.1-flash-lite</strong>.
+                    Blazing-fast sub-second response times.
                   </p>
                 </button>
-
+ 
                 {/* Search Grounding Mode */}
                 <button
                   onClick={() => setMode("search-grounding")}
@@ -236,13 +236,13 @@ export default function AiPlaygroundTab({ token }: AiPlaygroundTabProps) {
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <Search className={`h-4.5 w-4.5 ${mode === "search-grounding" ? "text-sky-400" : "text-slate-400"}`} />
-                    <span className="text-xs font-bold text-white">🔍 Google Search Data</span>
+                    <span className="text-xs font-bold text-white">Google Search Data</span>
                   </div>
                   <p className="text-[10px] text-slate-400 leading-normal">
-                    Queries web/news to inject live, up-to-date facts. Powered by <strong className="font-mono text-[9px] text-sky-400">gemini-3.5-flash</strong>.
+                    Queries web/news to inject live, up-to-date facts.
                   </p>
                 </button>
-
+ 
                 {/* Maps Grounding Mode */}
                 <button
                   onClick={() => setMode("maps-grounding")}
@@ -254,10 +254,10 @@ export default function AiPlaygroundTab({ token }: AiPlaygroundTabProps) {
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <MapPin className={`h-4.5 w-4.5 ${mode === "maps-grounding" ? "text-emerald-400" : "text-slate-400"}`} />
-                    <span className="text-xs font-bold text-white">🗺️ Google Maps Grounding</span>
+                    <span className="text-xs font-bold text-white">Google Maps Grounding</span>
                   </div>
                   <p className="text-[10px] text-slate-400 leading-normal">
-                    Location-aware place sources and live maps. Powered by <strong className="font-mono text-[9px] text-emerald-400">gemini-3.5-flash</strong>.
+                    Location-aware place sources and live maps.
                   </p>
                 </button>
 
@@ -272,7 +272,7 @@ export default function AiPlaygroundTab({ token }: AiPlaygroundTabProps) {
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <Sparkles className={`h-4.5 w-4.5 ${mode === "intelligence" ? "text-violet-400" : "text-slate-400"}`} />
-                    <span className="text-xs font-bold text-white">✨ AfriTranslate Dynamic Intelligence</span>
+                    <span className="text-xs font-bold text-white">AfriTranslate Dynamic Intelligence</span>
                   </div>
                   <p className="text-[10px] text-slate-400 leading-normal">
                     Analyze, proofread, and summarize translation content. Automatically switches models based on speed/complexity.
@@ -321,7 +321,7 @@ export default function AiPlaygroundTab({ token }: AiPlaygroundTabProps) {
                     disabled={locStatus === "getting"}
                     className="flex items-center gap-1 bg-slate-800 hover:bg-slate-750 text-slate-300 text-[10px] font-semibold px-2.5 py-1 rounded-lg border border-slate-700 transition-all disabled:opacity-40"
                   >
-                    {locStatus === "getting" ? "Fetching..." : "🎯 Use My Location"}
+                    {locStatus === "getting" ? "Fetching..." : "Use My Location"}
                   </button>
                   {PRESETS.map((p) => (
                     <button
@@ -342,21 +342,20 @@ export default function AiPlaygroundTab({ token }: AiPlaygroundTabProps) {
                 <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Task Speed & Complexity Profile</label>
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { id: "fast", label: "Fast Task", desc: "gemini-3.1-flash-lite", color: "text-amber-400 border-amber-500/30 bg-amber-500/5" },
-                    { id: "general", label: "General Task", desc: "gemini-3.5-flash", color: "text-sky-400 border-sky-500/30 bg-sky-500/5" },
-                    { id: "complex", label: "Complex Task", desc: "gemini-3.1-pro-preview", color: "text-violet-400 border-violet-500/30 bg-violet-500/5" }
+                    { id: "fast", label: "Fast Task", color: "text-amber-400 border-amber-500/30 bg-amber-500/5" },
+                    { id: "general", label: "General Task", color: "text-sky-400 border-sky-500/30 bg-sky-500/5" },
+                    { id: "complex", label: "Complex Task", color: "text-violet-400 border-violet-500/30 bg-violet-500/5" }
                   ].map((task) => (
                     <button
                       key={task.id}
                       onClick={() => setTaskType(task.id as TaskType)}
-                      className={`flex flex-col text-left p-2.5 rounded-lg border text-xs transition-all ${
+                      className={`flex flex-col items-center justify-center text-center py-3 px-2 rounded-lg border text-xs transition-all ${
                         taskType === task.id
                           ? "bg-slate-800 border-amber-500 text-white shadow-xs"
                           : "bg-slate-900/60 border-slate-800 text-slate-400 hover:border-slate-700"
                       }`}
                     >
                       <span className="font-bold">{task.label}</span>
-                      <span className="text-[9px] font-mono mt-0.5 opacity-80 truncate">{task.desc}</span>
                     </button>
                   ))}
                 </div>
