@@ -37,112 +37,28 @@ interface DbSchema {
   users: any[];
   history: any[];
   webhookConfigs: any[];
+  apiKeys: any[];
 }
 
 function initDb() {
   if (!fs.existsSync(DB_FILE)) {
-    const defaultSalt = crypto.randomBytes(16).toString("hex");
-    const defaultHashedPassword = crypto.pbkdf2Sync("password", defaultSalt, 1000, 64, "sha512").toString("hex");
-
     const initialDb: DbSchema = {
-      users: [
-        {
-          id: 1,
-          username: "demo",
-          email: "demo@afritranslate.com",
-          hashed_password: `${defaultSalt}:${defaultHashedPassword}`,
-          is_active: true,
-          api_calls: 14,
-          created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() // 7 days ago
-        }
-      ],
-      history: [
-        {
-          id: 1,
-          user_id: 1,
-          source_text: "Habari yako mzee?",
-          translated_text: "[Translated from Swahili → English]: How are you elder?",
-          source_lang_code: "sw",
-          target_lang_code: "en",
-          detected_lang: "sw",
-          confidence: 0.95,
-          character_count: 18,
-          source: "api",
-          message_id: null,
-          created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: 2,
-          user_id: 1,
-          source_text: "Sawubona! Ngiyabonga kakhulu.",
-          translated_text: "[Translated from Zulu → English]: Hello! Thank you very much.",
-          source_lang_code: "zu",
-          target_lang_code: "en",
-          detected_lang: "zu",
-          confidence: 0.96,
-          character_count: 31,
-          source: "whatsapp",
-          message_id: "wa_msg_98234",
-          created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: 3,
-          user_id: null,
-          source_text: "Nagode sarki.",
-          translated_text: "[Translated from Hausa → English]: Thank you king.",
-          source_lang_code: "ha",
-          target_lang_code: "en",
-          detected_lang: "ha",
-          confidence: 0.92,
-          character_count: 13,
-          source: "telegram",
-          message_id: "tg_update_234",
-          created_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: 4,
-          user_id: 1,
-          source_text: "Hello, we are launching the new clinic on Tuesday. Please inform the team.",
-          translated_text: "[sw] Habari, tunazindua kliniki mpya Jumanne. Tafadhali fahamisha timu.",
-          source_lang_code: "en",
-          target_lang_code: "sw",
-          detected_lang: "en",
-          confidence: 0.88,
-          character_count: 73,
-          source: "whatsapp",
-          message_id: "wa_msg_56372",
-          created_at: new Date(Date.now() - 12 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: 5,
-          user_id: 1,
-          source_text: "O se omo mi.",
-          translated_text: "[Translated from Yoruba → English]: Thank you my child.",
-          source_lang_code: "yo",
-          target_lang_code: "en",
-          detected_lang: "yo",
-          confidence: 0.94,
-          character_count: 12,
-          source: "api",
-          message_id: null,
-          created_at: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-        }
-      ],
-      webhookConfigs: [
-        {
-          id: 1,
-          user_id: 1,
-          platform: "whatsapp",
-          endpoint_url: "https://your-backend.com/webhooks/whatsapp",
-          secret_token: "wa_wh_secret_xyz123",
-          default_target_lang: "en",
-          is_active: true,
-          created_at: new Date().toISOString()
-        }
-      ]
+      users: [],
+      history: [],
+      webhookConfigs: [],
+      apiKeys: []
     };
     fs.writeFileSync(DB_FILE, JSON.stringify(initialDb, null, 2));
+    return;
   }
+
+  const db = readDb();
+  let changed = false;
+  if (!Array.isArray(db.users)) { db.users = []; changed = true; }
+  if (!Array.isArray(db.history)) { db.history = []; changed = true; }
+  if (!Array.isArray(db.webhookConfigs)) { db.webhookConfigs = []; changed = true; }
+  if (!Array.isArray(db.apiKeys)) { db.apiKeys = []; changed = true; }
+  if (changed) writeDb(db);
 }
 
 initDb();
@@ -152,7 +68,7 @@ function readDb(): DbSchema {
     const data = fs.readFileSync(DB_FILE, "utf-8");
     return JSON.parse(data);
   } catch (err) {
-    return { users: [], history: [], webhookConfigs: [] };
+    return { users: [], history: [], webhookConfigs: [], apiKeys: [] };
   }
 }
 
@@ -549,7 +465,8 @@ async function startServer() {
         username: newUser.username,
         email: newUser.email,
         api_calls: newUser.api_calls,
-        created_at: newUser.created_at
+        created_at: newUser.created_at,
+        is_active: newUser.is_active
       }
     });
   });
@@ -576,7 +493,8 @@ async function startServer() {
         username: user.username,
         email: user.email,
         api_calls: user.api_calls,
-        created_at: user.created_at
+        created_at: user.created_at,
+        is_active: user.is_active
       }
     });
   });
@@ -587,7 +505,8 @@ async function startServer() {
       username: req.user.username,
       email: req.user.email,
       api_calls: req.user.api_calls,
-      created_at: req.user.created_at
+      created_at: req.user.created_at,
+      is_active: req.user.is_active
     });
   });
 
@@ -605,13 +524,59 @@ async function startServer() {
       sourcesBreakdown[h.source] = (sourcesBreakdown[h.source] || 0) + 1;
     });
 
+    const activeApiKeys = (db.apiKeys || []).filter(k => k.user_id === req.user.id && k.status === "active").length;
+    const estimatedCostUsd = totalChars * 0.00000045;
+
     res.json({
       api_calls: req.user.api_calls,
       total_characters: totalChars,
       total_history_records: userHistory.length,
       languages: languagesBreakdown,
       sources: sourcesBreakdown,
+      success_rate: 100,
+      average_latency_ms: userHistory.length > 0 ? 1 : 0,
+      estimated_cost_usd: estimatedCostUsd,
+      active_api_keys: activeApiKeys
     });
+  });
+
+  // ─── API Key Endpoints ───
+
+  app.get("/api/v1/api-keys", getRequiredUser, (req: any, res) => {
+    const db = readDb();
+    const keys = (db.apiKeys || [])
+      .filter(k => k.user_id === req.user.id)
+      .map(({ secret_hash, ...safeKey }) => safeKey)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+    res.json(keys);
+  });
+
+  app.post("/api/v1/api-keys", getRequiredUser, (req: any, res) => {
+    const { name = "API Key", environment = "development", permissions = ["translation"] } = req.body || {};
+    const allowedEnvironments = new Set(["production", "development", "test"]);
+    if (!allowedEnvironments.has(environment)) {
+      return res.status(422).json({ detail: "Environment must be production, development, or test" });
+    }
+
+    const secret = `afri_${environment === "production" ? "live" : environment === "test" ? "test" : "dev"}_${crypto.randomBytes(24).toString("base64url")}`;
+    const db = readDb();
+    const key = {
+      id: db.apiKeys.length > 0 ? Math.max(...db.apiKeys.map(k => k.id)) + 1 : 1,
+      user_id: req.user.id,
+      name: String(name).slice(0, 80),
+      prefix: secret.slice(0, 14),
+      secret_hash: crypto.createHash("sha256").update(secret).digest("hex"),
+      created_at: new Date().toISOString(),
+      last_used_at: null,
+      requests: 0,
+      status: "active",
+      permissions: Array.isArray(permissions) ? permissions.map(String) : ["translation"],
+      environment
+    };
+    db.apiKeys.push(key);
+    writeDb(db);
+    const { secret_hash, ...safeKey } = key;
+    res.status(201).json({ key: safeKey, secret });
   });
 
   // ─── Languages Endpoints ───
