@@ -35,8 +35,6 @@ import AuthModal from "./components/AuthModal";
 import { AFRICAN_LANGUAGES } from "./data/languages";
 import { AuthResponse } from "./types";
 
-};
-
 const navGroups = [
   { label: "Overview", items: [{ id: "dashboard", label: "Dashboard", icon: LayoutDashboard }, { id: "docs", label: "Getting Started", icon: BookOpen }] },
   { label: "APIs", items: [{ id: "playground", label: "API Playground", icon: Terminal }, { id: "keys", label: "API Keys", icon: Key }, { id: "models", label: "Models", icon: Database }, { id: "routing", label: "Routing", icon: Route }, { id: "webhooks", label: "Webhooks", icon: Webhook }] },
@@ -45,20 +43,15 @@ const navGroups = [
   { label: "Account", items: [{ id: "billing", label: "Billing", icon: CreditCard }, { id: "security", label: "Security", icon: Shield }] }
 ] as const;
 
-];
-
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
-}
-
 }
 
 function Card({ children, className = "" }: { children: React.ReactNode; className?: string; key?: React.Key }) {
   return <section className={cx("rounded-2xl border border-slate-800/80 bg-slate-950/55 p-5 shadow-sm", className)}>{children}</section>;
 }
 
-
-export default function App() {
+export default function App()
   const [activeView, setActiveView] = useState<View>("dashboard");
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<AuthResponse["user"] | null>(null);
