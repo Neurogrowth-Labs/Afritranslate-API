@@ -301,7 +301,7 @@ async function translateText(
     const modelsToTry = ["gemini-3.5-flash", "gemini-3.1-flash-lite", "gemini-flash-latest"];
     
     for (const modelName of modelsToTry) {
-      let attempts = 3;
+      const attempts = 3;
       for (let attempt = 1; attempt <= attempts; attempt++) {
         try {
           console.log(`[Translation Engine] Routing translation through Gemini AI Client (Model: ${modelName}, Attempt: ${attempt}/${attempts})`);
@@ -789,7 +789,7 @@ async function startServer() {
     }
 
     let modelName = "gemini-3.5-flash";
-    let config: any = {
+    const config: any = {
       temperature: 0.7,
     };
 

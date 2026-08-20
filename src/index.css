@@ -1,1 +1,10 @@
 @import "tailwindcss";
+
+/* Custom gradient backgrounds */
+.hero-gradient {
+  background: radial-gradient(circle at top left, rgba(245, 158, 11, 0.14), transparent 28%), #020617;
+}
+
+.dashboard-gradient {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.13), rgba(15, 23, 42, 0.55) 35%, rgba(2, 6, 23, 0.85));
+}

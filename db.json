@@ -1,0 +1,31 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "hoang.nv.ral@gmail.com",
+      "email": "hoang.nv.ral@gmail.com",
+      "hashed_password": "0e8806b5c28eb714d0a7bb49e51a82c3:297a59dd5bc32369e625408ca43c9d2836820fc0ccbca3e2c3a984be1b62762f73967a13b2a179c8e4907330daee32350ac45b748df4204786fedb3a489e15e8",
+      "is_active": true,
+      "api_calls": 1,
+      "created_at": "2026-08-20T01:18:25.444Z"
+    }
+  ],
+  "history": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "source_text": "Welcome to AfriTranslate.",
+      "translated_text": "[Demo Mode] [Translated from English → Zulu]: Welcome to AfriTranslate.",
+      "source_lang_code": "en",
+      "target_lang_code": "zu",
+      "detected_lang": null,
+      "confidence": 0.85,
+      "character_count": 25,
+      "source": "api",
+      "message_id": null,
+      "created_at": "2026-08-20T01:18:32.025Z"
+    }
+  ],
+  "webhookConfigs": [],
+  "apiKeys": []
+}
